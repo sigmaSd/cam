@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Camera</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+  <video id="video" width="640" height="480"></video>
+  <br>
+  <button onclick="takePicture()">Take Picture</button>
+  <button onclick="chooseDownloadLocation()">Choose Download Location</button>
+  <p id="currentLocationDisplay"></p>
+  <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
+  <script type="module" type="text/javascript">
+    import {get, set} from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+    let downloadLocationHandle
+    if (await get('downloadLocation')) {
+      downloadLocationHandle = await get('downloadLocation')
+      currentLocationDisplay.textContent = "Current location: " + downloadLocationHandle.name
+    }
+    async function takePicture() {
+      if (!downloadLocationHandle) return
+      if ((await downloadLocationHandle.queryPermission({mode: "readwrite"})) !== 'granted') {
+        await downloadLocationHandle.requestPermission({mode: "readwrite"})
+      }
+
+      // Get the video element and canvas element
+      var video = document.getElementById("video");
+      var canvas = document.getElementById("canvas");
+
+      // Draw the video frame on the canvas
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert the canvas image to a Blob
+      var blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+
+      // Request access to the file system
+      const handle = await downloadLocationHandle.getFileHandle(new Date().toISOString().replaceAll(":", "-") + ".png", {create: true})
+
+      // Write the image to the file
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    }
+    async function chooseDownloadLocation() {
+      downloadLocationHandle = await window.showDirectoryPicker()
+      set('downloadLocation', downloadLocationHandle)
+      // window.localStorage.setItem('downloadLocation', downloadLocationHandle)
+      currentLocationDisplay.textContent = "Current location: " + downloadLocationHandle.name
+    }
+    window.takePicture = takePicture
+    window.chooseDownloadLocation = chooseDownloadLocation
+
+    // Get access to the camera and display the camera stream
+    navigator.mediaDevices.getUserMedia({video: true}).then(function (stream) {
+      var video = document.getElementById("video");
+      video.srcObject = stream;
+      video.play();
+    }).catch(function (err) {
+      console.log("Error: " + err);
+    });
+  </script>
+</body>
+
+</html>
