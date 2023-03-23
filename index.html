@@ -47,7 +47,6 @@
     async function chooseDownloadLocation() {
       downloadLocationHandle = await window.showDirectoryPicker()
       set('downloadLocation', downloadLocationHandle)
-      // window.localStorage.setItem('downloadLocation', downloadLocationHandle)
       currentLocationDisplay.textContent = "Current location: " + downloadLocationHandle.name
     }
     window.takePicture = takePicture
